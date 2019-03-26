@@ -1,0 +1,407 @@
+Tomcat软件的部署
+
+	作用：
+		1、实现网站服务器
+		2、解析Java语言的web应用程序
+		
+	软件介绍：
+		Tomcat		Apache 开源			http://tomcat.apache.org/
+			通用二进制
+			源码编译
+		Resin 
+		JBoss
+		
+		WebSphere
+		WebLogical 	商业工具
+
+		
+安装Tomcat
+
+1、安装JDK
+
+	[root@tomcat_server_01 ~]# mkdir /app
+
+	[root@tomcat_server_01 ~]# tar xf jdk-8u91-linux-x64.tar.gz -C /app/
+
+	[root@tomcat_server_01 ~]# tail -n 3 /etc/profile
+		export JAVA_HOME=/app/jdk1.8.0_91
+		export PATH=$PATH:$JAVA_HOME/bin
+		
+	[root@tomcat_server_01 ~]# source /etc/profile
+
+	[root@tomcat_server_01 ~]# java -version
+		java version "1.8.0_91"
+		Java(TM) SE Runtime Environment (build 1.8.0_91-b14)
+		Java HotSpot(TM) 64-Bit Server VM (build 25.91-b14, mixed mode)
+
+	
+	
+	
+
+2、安装tomcat
+
+	[root@tomcat_server_01 ~]# tar xf apache-tomcat-8.5.12.tar.gz -C /app/
+
+	[root@tomcat_server_01 ~]# mv /app/apache-tomcat-8.5.12/  /app/tomcat-8.5.12
+
+	[root@tomcat_server_01 ~]# tail -n 1 /etc/profile
+
+		export CATALINA_HOME=/app/tomcat-8.5.12
+
+	[root@tomcat ~]# source /etc/profile
+	
+	
+3、启动tomcat 
+
+	[root@tomcat_server_01 ~]# /app/tomcat-8.5.12/bin/catalina.sh start 
+
+	[root@tomcat_server_01 ~]# netstat -antp | grep java
+	tcp6       0      0 :::8080                 :::*                    LISTEN      1014/java           
+	tcp6       0      0 127.0.0.1:8005          :::*                    LISTEN      1014/java           
+	tcp6       0      0 :::8009                 :::*                    LISTEN      1014/java    	
+	
+	
+	==================设置Java应用开机自启动===================
+	
+	[root@tomcat_server_01 ~]# tail -n 3 /etc/rc.d/rc.local 
+		export JAVA_HOME=/app/jdk1.8.0_91
+		export CATALINA_HOME=/app/tomcat-8.5.12
+		/app/tomcat-8.5.12/bin/catalina.sh start
+		
+	[root@tomcat_server_01 ~]# chmod a+x /etc/rc.d/rc.local
+
+	===========================================================
+	
+	
+4、测试访问
+
+	http://192.168.122.222:8080/	
+	
+	
+	
+	
+Tomcat目录结构 
+
+	1、主配置文件
+		conf/server.xml 
+		
+	2、日志文件
+		logs/catalina.out   	查看启动错误信息
+		
+	3、库文件  jar包 
+		lib/ 
+		
+	4、默认的项目目录 
+	
+		webapps/ 
+			
+
+			
+tomcat部署方式：
+
+	1、单实例 
+	2、多实例 
+			
+			
+			
+配置文件 --- server.xml 
+
+	1) 配置tomcat实例端口 
+
+		 <Server port="8005" shutdown="SHUTDOWN">
+
+
+	2) 配置提供web服务的端口
+
+		<Connector port="8080" protocol="HTTP/1.1"
+
+	3) 配置httpd通过AJP协议实现反向代理
+
+		<Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+
+	4) 虚拟主机的配置
+
+		<Host name="localhost"  appBase="webapps"
+
+			<Context path="" docBase="test" />
+
+			name="localhost"   虚拟主机的主机名    
+			appBase=" "		   该虚拟主机的项目目录 
+			
+			docBase=" "			以相对路径的方式，标识存储网页文件的目录
+				
+
+		 <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+				   prefix="localhost_access_log" suffix=".txt"
+				   pattern="%h %l %u %t &quot;%r&quot; %s %b %{User-Agent}i" />
+
+
+				directory   访问日志文件目录 
+				prefix=		访问日志文件名称前缀
+				suffix=		访问日志文件名称后缀
+				pattern=    访问日志格式 
+				
+				
+				
+
+	5) 定义默认的虚拟主机名称 
+
+		<Engine name="Catalina" defaultHost="www.a.org">
+
+
+
+
+
+Tomcat多实例 
+
+		
+	部署两个Tomcat实例  
+	
+		实例1： 实例端口：8000     web服务端口：9000	项目目录：/test01 	安装目录：/opt/tomcat01
+		实例2： 实例端口：8001     web服务端口：9001	项目目录：/test02 	安装目录：/opt/tomcat02 
+		
+		
+1、安装jdk 
+
+2、创建实例目录 
+
+	[root@tomcat_server_01 ~]# mkdir /test0{1,2}/ROOT -p
+
+	
+	[root@tomcat_server_01 ~]# mkdir /opt/tomcat0{1,2}
+
+	[root@tomcat_server_01 ~]# mkdir /opt/tomcat01/{conf,logs}
+	[root@tomcat_server_01 ~]# mkdir /opt/tomcat02/{conf,logs}
+
+
+3、复制实例的配置文件 
+
+	[root@tomcat_server_01 ~]# cp -r /app/tomcat-8.5.12/conf/* /opt/tomcat01/conf/
+	[root@tomcat_server_01 ~]# cp -r /app/tomcat-8.5.12/conf/* /opt/tomcat02/conf/
+
+	
+4、配置实例的配置文件
+
+	[root@tomcat_server_01 conf]# vim /opt/tomcat01/conf/server.xml 
+
+		<Server port="8000" shutdown="SHUTDOWN">
+	
+	    <Connector port="9080" protocol="HTTP/1.1"
+		
+		<Host name="localhost"  appBase="/test01"
+            unpackWARs="true" autoDeploy="true">
+
+        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="/opt/tomcat01/logs"
+               prefix="localhost_access_log" suffix=".txt"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b %{User-Agent}i" />
+
+		</Host>
+
+	同样的方法，配置实例2的配置文件 
+
+
+5、配置实例启动脚本
+
+[root@tomcat_server_01 ~]# cat /opt/tomcat01/tomcat.sh 
+
+	#!/bin/bash
+	#instace1 script
+
+	export CATALINA_HOME=/app/tomcat-8.5.12
+	export CATALINA_BASE=/opt/tomcat01
+
+
+	case $1 in
+	start)
+	  $CATALINA_HOME/bin/startup.sh
+	  ;;
+	stop)
+	  $CATALINA_HOME/bin/shutdown.sh
+	  ;;
+	restart)
+	  $CATALINA_HOME/bin/shutdown.sh
+	  sleep 3
+	  $CATALINA_HOME/bin/startup.sh
+	  ;;
+	esac
+
+[root@tomcat_server_01 ~]# chmod a+x /opt/tomcat01/tomcat.sh /opt/tomcat02/tomcat.sh 
+
+		
+6、启动实例 		
+		
+	[root@tomcat_server_01 ~]# /opt/tomcat01/tomcat.sh start
+
+	[root@tomcat_server_01 ~]# /opt/tomcat02/tomcat.sh start
+		
+		
+	[root@tomcat_server_01 ~]# netstat -antp | grep java
+
+		
+		
+7、测试访问 
+
+	http://192.168.122.222:9000/
+	http://192.168.122.222:9001/
+		
+		
+		
+
+
+配置nginx实现实例的负载均衡
+
+	upstream tomcatserver {
+		 server 192.168.122.222:9000;
+		 server 192.168.122.222:9001;
+    }
+
+    location ~ \.jsp$ {
+		proxy_pass http://tomcatserver;
+		proxy_set_header x-real-ip $remote_addr;
+	} 
+
+		
+		
+		
+		
+		
+		
+
+部署JIRA 
+
+	项目管理 
+	Java应用 
+	
+	
+1、安装数据库 
+
+	[root@tomcat_server_01 ~]# yum install -y mariadb-server 
+
+	[root@tomcat_server_01 ~]# systemctl start mariadb
+	[root@tomcat_server_01 ~]# systemctl enable mariadb
+
+	MariaDB [(none)]> create database jira charset utf8;
+
+	MariaDB [(none)]> grant all on jira.* to 'jirauser'@'localhost' identified by 'redhat';
+
+	MariaDB [(none)]> flush privileges;
+
+
+
+2、依赖jdk，1.8.x 
+
+	[root@tomcat_server_01 ~]# java -version
+	java version "1.8.0_91"
+
+		
+		
+3、安装JIRA 
+
+[root@tomcat_server_01 ~]# chmod a+x atlassian-jira-software-7.4.0-EAP-20170411112033-x64.bin 
+
+[root@tomcat_server_01 ~]# ./atlassian-jira-software-7.4.0-EAP-20170411112033-x64.bin 
+
+Unpacking JRE ...
+Starting Installer ...
+Jan 24, 2019 3:25:55 PM java.util.prefs.FileSystemPreferences$1 run
+INFO: Created user preferences directory.
+Jan 24, 2019 3:25:55 PM java.util.prefs.FileSystemPreferences$2 run
+INFO: Created system preferences directory in java.home.
+
+This will install JIRA Software 7.4.0-EAP-20170411112033 on your computer.
+OK [o, Enter], Cancel [c]
+o
+Choose the appropriate installation or upgrade option.
+Please choose one of the following:
+Express Install (use default settings) [1], Custom Install (recommended for advanced users) [2, Enter], Upgrade an existing JIRA installation [3]
+2
+
+Where should JIRA Software be installed?
+[/opt/atlassian/jira]
+
+Default location for JIRA Software data
+[/var/atlassian/application-data/jira]
+
+Configure which ports JIRA Software will use.
+JIRA requires two TCP ports that are not being used by any other
+applications on this machine. The HTTP port is where you will access JIRA
+through your browser. The Control port is used to startup and shutdown JIRA.
+Use default ports (HTTP: 8080, Control: 8005) - Recommended [1, Enter], Set custom value for HTTP and Control ports [2]
+2
+HTTP Port Number
+[8080]
+7000
+Control Port Number
+[8005]
+6000
+
+Install JIRA as Service?
+Yes [y, Enter], No [n]
+y  
+Details on where JIRA Software will be installed and the settings that will be used.
+Installation Directory: /opt/atlassian/jira 
+Home Directory: /var/atlassian/application-data/jira 
+HTTP Port: 7000 
+RMI Port: 6000 
+Install as service: Yes 
+Install [i, Enter], Exit [e]
+
+Please wait a few moments while JIRA Software is configured.
+Installation of JIRA Software 7.4.0-EAP-20170411112033 is complete
+Start JIRA Software 7.4.0-EAP-20170411112033 now?
+Yes [y, Enter], No [n]
+y
+
+Please wait a few moments while JIRA Software starts up.
+Launching JIRA Software ...
+		
+		
+[root@tomcat_server_01 ~]# netstat -antp | grep java 
+
+		
+		
+4、配置JIRA连接MySQL数据库驱动 
+
+[root@tomcat_server_01 ~]# tar xf mysql-connector-java-5.1.42.tar.gz 
+[root@tomcat_server_01 ~]# cd mysql-connector-java-5.1.42/
+
+[root@tomcat_server_01 mysql-connector-java-5.1.42]# cp mysql-connector-java-5.1.42-bin.jar /opt/atlassian/lib/
+
+[root@jira bin]# /opt/atlassian/jira/bin/shutdown.sh 
+
+[root@jira bin]# /opt/atlassian/jira/bin/startup.sh 
+	
+
+
+5、通过浏览器访问JIRA初始安装界面 
+
+	http://192.168.122.192:8080/
+		
+		按提示进行安装 
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
